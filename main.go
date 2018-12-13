@@ -22,11 +22,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
 	properties "github.com/arduino/go-properties-orderedmap"
-	"github.com/oleksandr/bonjour"
+	"github.com/brutella/dnssd"
 )
 
 func main() {
@@ -108,19 +109,30 @@ func outputList() {
 	*/
 }
 
-func newBoardPortJSON(port *bonjour.ServiceEntry) *boardPortJSON {
+func newBoardPortJSON(port *dnssd.Service) *boardPortJSON {
 	prefs := properties.NewMap()
 	identificationPrefs := properties.NewMap()
+
+	ip := "127.0.0.1"
+
+	if len(port.IPs) > 0 {
+		ip = port.IPs[0].String()
+	}
+
 	portJSON := &boardPortJSON{
-		Address:             port.AddrIPv4.String(),
-		Label:               port.AddrIPv4.String(),
+		Address:             ip,
+		Label:               ip,
 		Protocol:            "network",
 		ProtocolLabel:       "Network Port",
 		Prefs:               prefs,
 		IdentificationPrefs: identificationPrefs,
 	}
-	portJSON.Prefs.Set("hostname", port.HostName)
-	portJSON.Prefs.Set("text", port.Text[0])
+	portJSON.Prefs.Set("ttl", port.Ttl.String())
+	portJSON.Prefs.Set("hostname", port.Hostname())
+	portJSON.Prefs.Set("port", strconv.Itoa(port.Port))
+	for key, value := range port.Text {
+		portJSON.Prefs.Set(key, value)
+	}
 	return portJSON
 }
 

@@ -18,12 +18,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"log"
 
-	"github.com/oleksandr/bonjour"
+	"github.com/brutella/dnssd"
 )
+
+var service = "_arduino._tcp.local."
 
 type syncOutputJSON struct {
 	EventType string         `json:"eventType"`
@@ -43,32 +44,24 @@ func startSync() (chan<- bool, error) {
 
 	closeChan := make(chan bool)
 
-	resolver, err := bonjour.NewResolver(nil)
-	if err != nil {
-		log.Println("Failed to initialize resolver:", err.Error())
-		return nil, err
+	addFn := func(srv dnssd.Service) {
+		outputSyncMessage(&syncOutputJSON{
+			EventType: "add",
+			Port:      newBoardPortJSON(&srv),
+		})
 	}
 
-	results := make(chan *bonjour.ServiceEntry)
+	remFn := func(srv dnssd.Service) {
+		outputSyncMessage(&syncOutputJSON{
+			EventType: "remove",
+			Port:      newBoardPortJSON(&srv),
+		})
+	}
 
-	go func(results chan *bonjour.ServiceEntry, exitCh chan<- bool) {
-		for {
-			for e := range results {
-				log.Printf("%+v", e)
-				if e.AddrIPv4 != nil {
-					fmt.Println(e)
-				}
-			}
-		}
-	}(results, resolver.Exit)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Sample output
-	//2018/12/12 18:05:14 &{ServiceRecord:{Instance:Arduino Service:_arduino._tcp Domain:local serviceName: serviceInstanceName: serviceTypeName:} HostName:Arduino.local. Port:65280 Text:[ssh_upload=no tcp_check=no auth_upload=yes board=uno2018] TTL:120 AddrIPv4:10.130.22.247 AddrIPv6:<nil>}
-	//&{{Arduino _arduino._tcp local   } Arduino.local. 65280 [ssh_upload=no tcp_check=no auth_upload=yes board=uno2018] 120 10.130.22.247 <nil>}
-
-	err = resolver.Browse("_arduino._tcp", "", results)
-	if err != nil {
-		log.Println("Failed to browse:", err.Error())
+	if err := dnssd.LookupType(ctx, service, addFn, remFn); err != nil {
 		return nil, err
 	}
 
