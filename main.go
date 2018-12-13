@@ -121,7 +121,7 @@ func newBoardPortJSON(port *dnssd.Service) *boardPortJSON {
 
 	portJSON := &boardPortJSON{
 		Address:             ip,
-		Label:               ip,
+		Label:               port.Name + " at " + ip,
 		Protocol:            "network",
 		ProtocolLabel:       "Network Port",
 		Prefs:               prefs,
@@ -132,6 +132,10 @@ func newBoardPortJSON(port *dnssd.Service) *boardPortJSON {
 	portJSON.Prefs.Set("port", strconv.Itoa(port.Port))
 	for key, value := range port.Text {
 		portJSON.Prefs.Set(key, value)
+		if key == "board" {
+			// duplicate for backwards compatibility
+			identificationPrefs.Set(".", value)
+		}
 	}
 	return portJSON
 }
