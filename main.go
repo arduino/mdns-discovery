@@ -1,7 +1,7 @@
 //
-// This file is part of serial-discovery.
+// This file is part of mdns-discovery.
 //
-// Copyright 2018 ARDUINO SA (http://www.arduino.cc/)
+// Copyright 2018-2021 ARDUINO SA (http://www.arduino.cc/)
 //
 // This software is released under the GNU General Public License version 3,
 // which covers the main part of arduino-cli.
@@ -18,153 +18,94 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
+	"context"
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
-	"sync"
 
+	discovery "github.com/arduino/dummy-discovery"
 	properties "github.com/arduino/go-properties-orderedmap"
 	"github.com/brutella/dnssd"
 )
 
 func main() {
-	syncStarted := false
-	var syncCloseChan chan<- bool
+	parseArgs()
+	mdnsDiscovery := &MDNSDiscovery{}
+	disc := discovery.NewDiscoveryServer(mdnsDiscovery)
+	disc.Run(os.Stdin, os.Stdout)
+}
 
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		cmd, err := reader.ReadString('\n')
-		if err != nil {
-			outputError(err)
-			os.Exit(1)
-		}
-		cmd = strings.ToUpper(strings.TrimSpace(cmd))
-		switch cmd {
-		case "START":
-			outputMessage("start", "OK")
-		case "STOP":
-			if syncStarted {
-				syncCloseChan <- true
-				syncStarted = false
-			}
-			outputMessage("stop", "OK")
-		case "LIST":
-			outputList()
-		case "QUIT":
-			outputMessage("quit", "OK")
-			os.Exit(0)
-		case "START_SYNC":
-			if syncStarted {
-				outputMessage("startSync", "OK")
-			} else if close, err := startSync(); err != nil {
-				outputError(err)
-			} else {
-				syncCloseChan = close
-				syncStarted = true
-			}
-		default:
-			outputError(fmt.Errorf("Command %s not supported", cmd))
-		}
+const mdnsServiceName = "_arduino._tcp.local."
+
+type MDNSDiscovery struct {
+	started bool
+}
+
+func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
+	return nil
+}
+
+func (d *MDNSDiscovery) Start() error {
+	return nil
+}
+
+func (d *MDNSDiscovery) Stop() error {
+	return nil
+}
+
+func (d *MDNSDiscovery) List() ([]*discovery.Port, error) {
+	return []*discovery.Port{}, nil
+}
+
+func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback) (chan<- bool, error) {
+	addFn := func(srv dnssd.Service) {
+		eventCB("add", newBoardPortJSON(&srv))
 	}
-}
+	remFn := func(srv dnssd.Service) {
+		eventCB("remove", newBoardPortJSON(&srv))
+	}
+	ctx, cancel := context.WithCancel(context.Background())
 
-type boardPortJSON struct {
-	Address             string          `json:"address"`
-	Label               string          `json:"label,omitempty"`
-	Prefs               *properties.Map `json:"prefs,omitempty"`
-	IdentificationPrefs *properties.Map `json:"identificationPrefs,omitempty"`
-	Protocol            string          `json:"protocol,omitempty"`
-	ProtocolLabel       string          `json:"protocolLabel,omitempty"`
-}
+	go func() {
+		if err := dnssd.LookupType(ctx, mdnsServiceName, addFn, remFn); err != nil {
+			_ = err // TODO: report ERROR
+		}
+		fmt.Println("CANCELED!")
+	}()
 
-type listOutputJSON struct {
-	EventType string           `json:"eventType"`
-	Ports     []*boardPortJSON `json:"ports"`
-}
-
-func outputList() {
-	/*
-		list, err := enumerator.GetDetailedPortsList()
-		if err != nil {
-			outputError(err)
+	closeChan := make(chan bool)
+	go func() {
+		for range closeChan {
+			cancel()
 			return
 		}
-		portsJSON := []*boardPortJSON{}
-		for _, port := range list {
-			portJSON := newBoardPortJSON(port)
-			portsJSON = append(portsJSON, portJSON)
-		}
-		d, err := json.MarshalIndent(&listOutputJSON{
-			EventType: "list",
-			Ports:     portsJSON,
-		}, "", "  ")
-		if err != nil {
-			outputError(err)
-			return
-		}
-		syncronizedPrintLn(string(d))
-	*/
+	}()
+
+	return closeChan, nil
 }
 
-func newBoardPortJSON(port *dnssd.Service) *boardPortJSON {
-	prefs := properties.NewMap()
-	identificationPrefs := properties.NewMap()
-
+func newBoardPortJSON(port *dnssd.Service) *discovery.Port {
 	ip := "127.0.0.1"
-
 	if len(port.IPs) > 0 {
 		ip = port.IPs[0].String()
 	}
 
-	portJSON := &boardPortJSON{
-		Address:             ip,
-		Label:               port.Name + " at " + ip,
-		Protocol:            "network",
-		ProtocolLabel:       "Network Port",
-		Prefs:               prefs,
-		IdentificationPrefs: identificationPrefs,
-	}
-	portJSON.Prefs.Set("ttl", port.Ttl.String())
-	portJSON.Prefs.Set("hostname", port.Hostname())
-	portJSON.Prefs.Set("port", strconv.Itoa(port.Port))
+	props := properties.NewMap()
+	props.Set("ttl", port.TTL.String())
+	props.Set("hostname", port.Hostname())
+	props.Set("port", strconv.Itoa(port.Port))
 	for key, value := range port.Text {
-		portJSON.Prefs.Set(key, value)
+		props.Set(key, value)
 		if key == "board" {
 			// duplicate for backwards compatibility
-			identificationPrefs.Set(".", value)
+			props.Set(".", value)
 		}
 	}
-	return portJSON
-}
-
-type messageOutputJSON struct {
-	EventType string `json:"eventType"`
-	Message   string `json:"message"`
-}
-
-func outputMessage(eventType, message string) {
-	d, err := json.MarshalIndent(&messageOutputJSON{
-		EventType: eventType,
-		Message:   message,
-	}, "", "  ")
-	if err != nil {
-		outputError(err)
-	} else {
-		syncronizedPrintLn(string(d))
+	return &discovery.Port{
+		Address:       ip,
+		AddressLabel:  port.Name + " at " + ip,
+		Protocol:      "network",
+		ProtocolLabel: "Network Port",
+		Properties:    props,
 	}
-}
-
-func outputError(err error) {
-	outputMessage("error", err.Error())
-}
-
-var stdoutMutext sync.Mutex
-
-func syncronizedPrintLn(a ...interface{}) {
-	stdoutMutext.Lock()
-	fmt.Println(a...)
-	stdoutMutext.Unlock()
 }
