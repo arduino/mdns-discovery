@@ -19,12 +19,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 
-	discovery "github.com/arduino/dummy-discovery"
 	properties "github.com/arduino/go-properties-orderedmap"
+	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
 	"github.com/brutella/dnssd"
 )
 
@@ -38,7 +37,7 @@ func main() {
 const mdnsServiceName = "_arduino._tcp.local."
 
 type MDNSDiscovery struct {
-	started bool
+	cancelFunc func()
 }
 
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
@@ -50,14 +49,21 @@ func (d *MDNSDiscovery) Start() error {
 }
 
 func (d *MDNSDiscovery) Stop() error {
+	if d.cancelFunc != nil {
+		d.cancelFunc()
+		d.cancelFunc = nil
+	}
 	return nil
+}
+
+func (d *MDNSDiscovery) Quit() {
 }
 
 func (d *MDNSDiscovery) List() ([]*discovery.Port, error) {
 	return []*discovery.Port{}, nil
 }
 
-func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback) (chan<- bool, error) {
+func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB discovery.ErrorCallback) error {
 	addFn := func(srv dnssd.Service) {
 		eventCB("add", newBoardPortJSON(&srv))
 	}
@@ -68,20 +74,11 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback) (chan<- bool,
 
 	go func() {
 		if err := dnssd.LookupType(ctx, mdnsServiceName, addFn, remFn); err != nil {
-			_ = err // TODO: report ERROR
-		}
-		fmt.Println("CANCELED!")
-	}()
-
-	closeChan := make(chan bool)
-	go func() {
-		for range closeChan {
-			cancel()
-			return
+			errorCB("mdns lookup error: " + err.Error())
 		}
 	}()
-
-	return closeChan, nil
+	d.cancelFunc = cancel
+	return nil
 }
 
 func newBoardPortJSON(port *dnssd.Service) *discovery.Port {
@@ -91,7 +88,7 @@ func newBoardPortJSON(port *dnssd.Service) *discovery.Port {
 	}
 
 	props := properties.NewMap()
-	props.Set("ttl", port.TTL.String())
+	props.Set("ttl", strconv.Itoa(int(port.TTL.Seconds())))
 	props.Set("hostname", port.Hostname())
 	props.Set("port", strconv.Itoa(port.Port))
 	for key, value := range port.Text {
