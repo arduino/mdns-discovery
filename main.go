@@ -45,14 +45,17 @@ type MDNSDiscovery struct {
 	cancelFunc func()
 }
 
+// Hello handles the pluggable-discovery HELLO command
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	return nil
 }
 
+// Start handles the pluggable-discovery START command
 func (d *MDNSDiscovery) Start() error {
 	return nil
 }
 
+// Stop handles the pluggable-discovery STOP command
 func (d *MDNSDiscovery) Stop() error {
 	if d.cancelFunc != nil {
 		d.cancelFunc()
@@ -61,13 +64,16 @@ func (d *MDNSDiscovery) Stop() error {
 	return nil
 }
 
+// Quit handles the pluggable-discovery QUIT command
 func (d *MDNSDiscovery) Quit() {
 }
 
+// List handles the pluggable-discovery LIST command
 func (d *MDNSDiscovery) List() ([]*discovery.Port, error) {
 	return []*discovery.Port{}, nil
 }
 
+// StartSync handles the pluggable-discovery START_SYNC command
 func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB discovery.ErrorCallback) error {
 	addFn := func(srv dnssd.Service) {
 		eventCB("add", newBoardPortJSON(&srv))
