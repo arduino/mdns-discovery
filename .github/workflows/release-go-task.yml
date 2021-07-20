@@ -122,7 +122,9 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    needs: notarize-macos
+    needs:
+      - create-release-artifacts
+      #- notarize-macos
 
     steps:
       - name: Checkout repository
