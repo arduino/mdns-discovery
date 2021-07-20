@@ -7,7 +7,7 @@ env:
   # As defined by the Taskfile's DIST_DIR variable
   DIST_DIR: dist
   # The project's folder on Arduino's download server for uploading builds
-  AWS_PLUGIN_TARGET: TODO
+  AWS_PLUGIN_TARGET: /discovery/mdns-discovery/
   ARTIFACT_NAME: dist
 
 on:
@@ -154,12 +154,12 @@ jobs:
           prerelease: ${{ steps.prerelease.outputs.IS_PRE }}
           artifacts: ${{ env.DIST_DIR }}/*
 
-      #- name: Upload release files on Arduino downloads servers
-      #  uses: docker://plugins/s3
-      #  env:
-      #    PLUGIN_SOURCE: "${{ env.DIST_DIR }}/*"
-      #    PLUGIN_TARGET: ${{ env.AWS_PLUGIN_TARGET }}
-      #    PLUGIN_STRIP_PREFIX: "${{ env.DIST_DIR }}/"
-      #    PLUGIN_BUCKET: ${{ secrets.DOWNLOADS_BUCKET }}
-      #    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Upload release files on Arduino downloads servers
+        uses: docker://plugins/s3
+        env:
+          PLUGIN_SOURCE: "${{ env.DIST_DIR }}/*"
+          PLUGIN_TARGET: ${{ env.AWS_PLUGIN_TARGET }}
+          PLUGIN_STRIP_PREFIX: "${{ env.DIST_DIR }}/"
+          PLUGIN_BUCKET: ${{ secrets.DOWNLOADS_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
