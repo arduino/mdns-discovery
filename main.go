@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -31,7 +32,11 @@ func main() {
 	parseArgs()
 	mdnsDiscovery := &MDNSDiscovery{}
 	disc := discovery.NewDiscoveryServer(mdnsDiscovery)
-	disc.Run(os.Stdin, os.Stdout)
+	if err := disc.Run(os.Stdin, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+		os.Exit(1)
+	}
+
 }
 
 const mdnsServiceName = "_arduino._tcp.local."
