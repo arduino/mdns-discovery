@@ -30,7 +30,7 @@ func parseArgs() {
 			continue
 		}
 		if arg == "-v" || arg == "--version" {
-			fmt.Printf("mdns-discovery %s (build timestamp: %s)\n", version.Tag, version.Timestamp)
+			fmt.Printf("mdns-discovery %s (build timestamp: %s)\n", version.Version, version.Timestamp)
 			os.Exit(0)
 		}
 		fmt.Fprintf(os.Stderr, "invalid argument: %s\n", arg)
