@@ -4,8 +4,8 @@ github.com/arduino/go-paths-helper v1.6.1/go.mod h1:V82BWgAAp4IbmlybxQdk9Bpkz8M4
 github.com/arduino/go-properties-orderedmap v1.4.0/go.mod h1:DKjD2VXY/NZmlingh4lSFMEYCVubfeArCsGPGDwb2yk=
 github.com/arduino/go-properties-orderedmap v1.5.0 h1:istmr13qQN3nneuU3lsqlMvI6jqB3u8QUfVU1tX/t/8=
 github.com/arduino/go-properties-orderedmap v1.5.0/go.mod h1:DKjD2VXY/NZmlingh4lSFMEYCVubfeArCsGPGDwb2yk=
-github.com/arduino/pluggable-discovery-protocol-handler v1.1.0 h1:/fYOQ9f6beV9+mv9rDs+kvkhNKJ1edIT0RvIRj5Jj4U=
-github.com/arduino/pluggable-discovery-protocol-handler v1.1.0/go.mod h1:vQfYGJnunfcscLoUcZKqJBlEkZ/qiE28TQj+RV9UT74=
+github.com/arduino/pluggable-discovery-protocol-handler v1.2.0 h1:gw6W8CtgGc+kh+DKfh+z6cUVPqaZh9Tu3XCt/uGgJUE=
+github.com/arduino/pluggable-discovery-protocol-handler v1.2.0/go.mod h1:vQfYGJnunfcscLoUcZKqJBlEkZ/qiE28TQj+RV9UT74=
 github.com/brutella/dnssd v1.1.1 h1:Ar5ytE2Z9x5DTmuNnASlMTBpcQWQLm9ceHb326s0ykg=
 github.com/brutella/dnssd v1.1.1/go.mod h1:9gIcMKQSJvYlO2x+HR50cqqjghb9IWK9hvykmyveVVs=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
