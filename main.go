@@ -41,6 +41,7 @@ func main() {
 
 const mdnsServiceName = "_arduino._tcp.local."
 
+// MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
 	cancelFunc func()
 }
