@@ -7,7 +7,7 @@ summary: discovery is a library for handling the Arduino Pluggable-Discovery pro
   The library implements the state machine and the parsing logic to communicate with
   a pluggable-discovery client.
 homepage: https://pkg.go.dev/github.com/arduino/pluggable-discovery-protocol-handler
-license: other
+license: gpl-3.0-only
 licenses:
 - sources: LICENSE.txt
   text: |
