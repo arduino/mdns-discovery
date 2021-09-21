@@ -40,13 +40,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        zip {{.PACKAGE_NAME}} {{.PLATFORM_DIR}}/{{.PROJECT_NAME}}.exe ../LICENSE.txt -j
+        zip {{.PACKAGE_NAME}} {{.PLATFORM_DIR}}/{{.PROJECT_NAME}}.exe {{.PLATFORM_DIR}}/LICENSE.txt
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -62,13 +64,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        zip {{.PACKAGE_NAME}} {{.PLATFORM_DIR}}/{{.PROJECT_NAME}}.exe ../LICENSE.txt -j
+        zip {{.PACKAGE_NAME}} {{.PLATFORM_DIR}}/{{.PROJECT_NAME}}.exe {{.PLATFORM_DIR}}/LICENSE.txt
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -84,13 +88,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -106,13 +112,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -128,13 +136,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -150,13 +160,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
@@ -200,17 +212,19 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
-      PLATFORM_DIR: "{{.PROJECT_NAME}}_linux_arm_6"
+      PLATFORM_DIR: "{{.PROJECT_NAME}}_linux_arm_64"
       BUILD_COMMAND: "go build -o {{.DIST_DIR}}/{{.PLATFORM_DIR}}/{{.PROJECT_NAME}} {{.LDFLAGS}}"
       BUILD_PLATFORM: "linux/arm64"
       CONTAINER_TAG: "{{.GO_VERSION}}-arm"
@@ -222,13 +236,15 @@ tasks:
     dir: "{{.DIST_DIR}}"
     cmds:
       - |
+        mkdir {{.PLATFORM_DIR}}
+        cp ../LICENSE.txt {{.PLATFORM_DIR}}/
         docker run -v `pwd`/..:/home/build -w /home/build \
         -e CGO_ENABLED=1 \
         {{.CONTAINER}}:{{.CONTAINER_TAG}} \
         --build-cmd "{{.BUILD_COMMAND}}" \
         -p "{{.BUILD_PLATFORM}}"
 
-        tar cz -C {{.PLATFORM_DIR}} {{.PROJECT_NAME}} -C ../.. LICENSE.txt  -f {{.PACKAGE_NAME}}
+        tar cz {{.PLATFORM_DIR}} -f {{.PACKAGE_NAME}}
         sha256sum {{.PACKAGE_NAME}} >> {{.CHECKSUM_FILE}}
 
     vars:
