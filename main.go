@@ -20,12 +20,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	properties "github.com/arduino/go-properties-orderedmap"
 	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
-	"github.com/brutella/dnssd"
+	"github.com/hashicorp/mdns"
 )
 
 func main() {
@@ -39,15 +43,18 @@ func main() {
 
 }
 
-const mdnsServiceName = "_arduino._tcp.local."
+const mdnsServiceName = "_arduino._tcp"
 
 // MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
-	cancelFunc func()
+	cancelFunc  func()
+	entriesChan chan *mdns.ServiceEntry
 }
 
 // Hello handles the pluggable-discovery HELLO command
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
+	// The mdns library used has some logs statement that we must disable
+	log.SetOutput(ioutil.Discard)
 	return nil
 }
 
@@ -57,52 +64,87 @@ func (d *MDNSDiscovery) Stop() error {
 		d.cancelFunc()
 		d.cancelFunc = nil
 	}
+	if d.entriesChan != nil {
+		close(d.entriesChan)
+		d.entriesChan = nil
+	}
 	return nil
 }
 
 // Quit handles the pluggable-discovery QUIT command
 func (d *MDNSDiscovery) Quit() {
+	close(d.entriesChan)
 }
 
 // StartSync handles the pluggable-discovery START_SYNC command
 func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB discovery.ErrorCallback) error {
-	addFn := func(srv dnssd.Service) {
-		eventCB("add", newBoardPortJSON(&srv))
+	if d.entriesChan != nil {
+		return fmt.Errorf("already syncing")
 	}
-	remFn := func(srv dnssd.Service) {
-		eventCB("remove", newBoardPortJSON(&srv))
-	}
-	ctx, cancel := context.WithCancel(context.Background())
+
+	d.entriesChan = make(chan *mdns.ServiceEntry, 4)
+	var receiver <-chan *mdns.ServiceEntry = d.entriesChan
+	var sender chan<- *mdns.ServiceEntry = d.entriesChan
 
 	go func() {
-		if err := dnssd.LookupType(ctx, mdnsServiceName, addFn, remFn); err != nil {
-			errorCB("mdns lookup error: " + err.Error())
+		for entry := range receiver {
+			eventCB("add", toDiscoveryPort(entry))
+		}
+	}()
+
+	params := &mdns.QueryParam{
+		Service:             mdnsServiceName,
+		Domain:              "local",
+		Timeout:             time.Second * 15,
+		Entries:             sender,
+		WantUnicastResponse: false,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			if err := mdns.Query(params); err != nil {
+				errorCB("mdns lookup error: " + err.Error())
+			}
+			select {
+			default:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	d.cancelFunc = cancel
 	return nil
 }
 
-func newBoardPortJSON(port *dnssd.Service) *discovery.Port {
-	ip := "127.0.0.1"
-	if len(port.IPs) > 0 {
-		ip = port.IPs[0].String()
+func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
+	ip := ""
+	if len(entry.AddrV4) > 0 {
+		ip = entry.AddrV4.String()
+	} else if len(entry.AddrV6) > 0 {
+		ip = entry.AddrV6.String()
 	}
 
 	props := properties.NewMap()
-	props.Set("ttl", strconv.Itoa(int(port.TTL.Seconds())))
-	props.Set("hostname", port.Hostname())
-	props.Set("port", strconv.Itoa(port.Port))
-	for key, value := range port.Text {
+	props.Set("hostname", entry.Host)
+	props.Set("port", strconv.Itoa(entry.Port))
+
+	for _, field := range entry.InfoFields {
+		split := strings.Split(field, "=")
+		if len(split) != 2 {
+			continue
+		}
+		key, value := split[0], split[1]
 		props.Set(key, value)
 		if key == "board" {
 			// duplicate for backwards compatibility
 			props.Set(".", value)
 		}
 	}
+
 	return &discovery.Port{
 		Address:       ip,
-		AddressLabel:  port.Name + " at " + ip,
+		AddressLabel:  fmt.Sprintf("%s at %s", entry.Name, ip),
 		Protocol:      "network",
 		ProtocolLabel: "Network Port",
 		Properties:    props,
