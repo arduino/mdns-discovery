@@ -40,21 +40,30 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		os.Exit(1)
 	}
-
 }
 
 const mdnsServiceName = "_arduino._tcp"
+
+// Discovered ports stay alive for this amount of time
+// since the last time they've been found by an mDNS query.
+const portsTTL = time.Second * 60
+
+// This is interval at which mDNS queries are made.
+const discoveryInterval = time.Second * 15
 
 // MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
 	cancelFunc  func()
 	entriesChan chan *mdns.ServiceEntry
+
+	portsCache *portsCache
 }
 
 // Hello handles the pluggable-discovery HELLO command
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	// The mdns library used has some logs statement that we must disable
 	log.SetOutput(ioutil.Discard)
+	d.portsCache = NewCache(portsTTL)
 	return nil
 }
 
@@ -67,6 +76,9 @@ func (d *MDNSDiscovery) Stop() error {
 	if d.entriesChan != nil {
 		close(d.entriesChan)
 		d.entriesChan = nil
+	}
+	if d.portsCache != nil {
+		d.portsCache.Clear()
 	}
 	return nil
 }
@@ -82,20 +94,34 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		return fmt.Errorf("already syncing")
 	}
 
+	if d.portsCache.deletionCallback == nil {
+		// We can't set the cache deletion callback at creation,
+		// this is the only place we can get the callback
+		d.portsCache.deletionCallback = func(port *discovery.Port) {
+			eventCB("remove", port)
+		}
+	}
+
 	d.entriesChan = make(chan *mdns.ServiceEntry, 4)
 	var receiver <-chan *mdns.ServiceEntry = d.entriesChan
 	var sender chan<- *mdns.ServiceEntry = d.entriesChan
 
 	go func() {
 		for entry := range receiver {
-			eventCB("add", toDiscoveryPort(entry))
+			port := toDiscoveryPort(entry)
+			key := portKey(port)
+			if _, ok := d.portsCache.Get(key); !ok {
+				// Port is not cached so let the user know a new one has been found
+				eventCB("add", port)
+			}
+			d.portsCache.Set(portKey(port), port)
 		}
 	}()
 
 	params := &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
-		Timeout:             time.Second * 15,
+		Timeout:             discoveryInterval,
 		Entries:             sender,
 		WantUnicastResponse: false,
 	}
@@ -115,6 +141,10 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	}()
 	d.cancelFunc = cancel
 	return nil
+}
+
+func portKey(p *discovery.Port) string {
+	return fmt.Sprintf("%s:%s %s", p.Address, p.Properties.Get("port"), p.Properties.Get("board"))
 }
 
 func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
