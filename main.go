@@ -63,7 +63,6 @@ type MDNSDiscovery struct {
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	// The mdns library used has some logs statement that we must disable
 	log.SetOutput(ioutil.Discard)
-	d.portsCache = newCache(portsTTL)
 	return nil
 }
 
@@ -94,24 +93,21 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		return fmt.Errorf("already syncing")
 	}
 
-	if d.portsCache.deletionCallback == nil {
-		// We can't set the cache deletion callback at creation,
-		// this is the only place we can get the callback
-		d.portsCache.deletionCallback = func(port *discovery.Port) {
+	if d.portsCache == nil {
+		// Initialize the cache if not already done
+		d.portsCache = newCache(portsTTL, func(port *discovery.Port) {
 			eventCB("remove", port)
-		}
+		})
 	}
 
 	d.entriesChan = make(chan *mdns.ServiceEntry, 4)
 	go func() {
 		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
-			key := portKey(port)
-			if _, ok := d.portsCache.get(key); !ok {
+			if updated := d.portsCache.storeOrUpdate(port); !updated {
 				// Port is not cached so let the user know a new one has been found
 				eventCB("add", port)
 			}
-			d.portsCache.set(portKey(port), port)
 		}
 	}()
 
@@ -155,10 +151,6 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	}()
 	d.cancelFunc = cancel
 	return nil
-}
-
-func portKey(p *discovery.Port) string {
-	return fmt.Sprintf("%s:%s %s", p.Address, p.Properties.Get("port"), p.Properties.Get("board"))
 }
 
 func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {

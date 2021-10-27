@@ -19,15 +19,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
 )
 
-// cacheItem stores the Port discovered and its timer to handle TTL.
+// cacheItem stores TTL of discovered ports and its timer to handle TTL.
 type cacheItem struct {
-	Port       *discovery.Port
 	timerTTL   *time.Timer
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -47,18 +47,20 @@ type portsCache struct {
 // newCache creates a new portsCache and returns it.
 // itemsTTL is the TTL of a single item, when it's reached
 // the stored item is deleted.
-func newCache(itemsTTL time.Duration) *portsCache {
+func newCache(itemsTTL time.Duration, deletionCallback func(port *discovery.Port)) *portsCache {
 	return &portsCache{
-		itemsTTL: itemsTTL,
-		data:     make(map[string]*cacheItem),
+		itemsTTL:         itemsTTL,
+		data:             make(map[string]*cacheItem),
+		deletionCallback: deletionCallback,
 	}
 }
 
-// set stores a new port and sets its TTL.
-// If the specified key is already found the item's TTL is
-// renewed.
-// set is thread safe.
-func (c *portsCache) set(key string, port *discovery.Port) {
+// storeOrUpdate stores a new port and sets its TTL or
+// updates the TTL if already stored.
+// Return true if the port TTL has been updated, false otherwise
+// storeOrUpdate is thread safe.
+func (c *portsCache) storeOrUpdate(port *discovery.Port) bool {
+	key := fmt.Sprintf("%s:%s %s", port.Address, port.Properties.Get("port"), port.Properties.Get("board"))
 	c.dataMutex.Lock()
 	defer c.dataMutex.Unlock()
 	// We need a cancellable context to avoid leaving
@@ -77,7 +79,6 @@ func (c *portsCache) set(key string, port *discovery.Port) {
 		item.cancelFunc = cancelFunc
 	} else {
 		item = &cacheItem{
-			Port:       port,
 			timerTTL:   timerTTL,
 			ctx:        ctx,
 			cancelFunc: cancelFunc,
@@ -85,12 +86,12 @@ func (c *portsCache) set(key string, port *discovery.Port) {
 		c.data[key] = item
 	}
 
-	go func(key string, item *cacheItem) {
+	go func(key string, item *cacheItem, port *discovery.Port) {
 		select {
 		case <-item.timerTTL.C:
 			c.dataMutex.Lock()
 			defer c.dataMutex.Unlock()
-			c.deletionCallback(item.Port)
+			c.deletionCallback(port)
 			delete(c.data, key)
 			return
 		case <-item.ctx.Done():
@@ -102,19 +103,9 @@ func (c *portsCache) set(key string, port *discovery.Port) {
 			// Using a context we handle this gracefully.
 			return
 		}
-	}(key, item)
-}
+	}(key, item, port)
 
-// get returns the item stored with the specified key and true.
-// If the item is not found returns a nil port and false.
-// get is thread safe.
-func (c *portsCache) get(key string) (*discovery.Port, bool) {
-	c.dataMutex.Lock()
-	defer c.dataMutex.Unlock()
-	if item, ok := c.data[key]; ok {
-		return item.Port, ok
-	}
-	return nil, false
+	return ok
 }
 
 // clear removes all the stored items and stops their TTL timers.
