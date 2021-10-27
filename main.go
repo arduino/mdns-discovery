@@ -63,7 +63,7 @@ type MDNSDiscovery struct {
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	// The mdns library used has some logs statement that we must disable
 	log.SetOutput(ioutil.Discard)
-	d.portsCache = NewCache(portsTTL)
+	d.portsCache = newCache(portsTTL)
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (d *MDNSDiscovery) Stop() error {
 		d.entriesChan = nil
 	}
 	if d.portsCache != nil {
-		d.portsCache.Clear()
+		d.portsCache.clear()
 	}
 	return nil
 }
@@ -107,11 +107,11 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
 			key := portKey(port)
-			if _, ok := d.portsCache.Get(key); !ok {
+			if _, ok := d.portsCache.get(key); !ok {
 				// Port is not cached so let the user know a new one has been found
 				eventCB("add", port)
 			}
-			d.portsCache.Set(portKey(port), port)
+			d.portsCache.set(portKey(port), port)
 		}
 	}()
 

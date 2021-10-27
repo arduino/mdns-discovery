@@ -44,21 +44,21 @@ type portsCache struct {
 	deletionCallback func(port *discovery.Port)
 }
 
-// NewCache creates a new portsCache and returns it.
+// newCache creates a new portsCache and returns it.
 // itemsTTL is the TTL of a single item, when it's reached
 // the stored item is deleted.
-func NewCache(itemsTTL time.Duration) *portsCache {
+func newCache(itemsTTL time.Duration) *portsCache {
 	return &portsCache{
 		itemsTTL: itemsTTL,
 		data:     make(map[string]*cacheItem),
 	}
 }
 
-// Set stores a new port and sets its TTL.
+// set stores a new port and sets its TTL.
 // If the specified key is already found the item's TTL is
 // renewed.
-// Set is thread safe.
-func (c *portsCache) Set(key string, port *discovery.Port) {
+// set is thread safe.
+func (c *portsCache) set(key string, port *discovery.Port) {
 	c.dataMutex.Lock()
 	defer c.dataMutex.Unlock()
 	// We need a cancellable context to avoid leaving
@@ -105,10 +105,10 @@ func (c *portsCache) Set(key string, port *discovery.Port) {
 	}(key, item)
 }
 
-// Get returns the item stored with the specified key and true.
+// get returns the item stored with the specified key and true.
 // If the item is not found returns a nil port and false.
-// Get is thread safe.
-func (c *portsCache) Get(key string) (*discovery.Port, bool) {
+// get is thread safe.
+func (c *portsCache) get(key string) (*discovery.Port, bool) {
 	c.dataMutex.Lock()
 	defer c.dataMutex.Unlock()
 	if item, ok := c.data[key]; ok {
@@ -117,9 +117,9 @@ func (c *portsCache) Get(key string) (*discovery.Port, bool) {
 	return nil, false
 }
 
-// Clear removes all the stored items and stops their TTL timers.
-// Clear is thread safe.
-func (c *portsCache) Clear() {
+// clear removes all the stored items and stops their TTL timers.
+// clear is thread safe.
+func (c *portsCache) clear() {
 	c.dataMutex.Lock()
 	defer c.dataMutex.Unlock()
 	for key, item := range c.data {
