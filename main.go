@@ -85,7 +85,7 @@ func (d *MDNSDiscovery) Stop() error {
 
 // Quit handles the pluggable-discovery QUIT command
 func (d *MDNSDiscovery) Quit() {
-	close(d.entriesChan)
+	d.Stop()
 }
 
 // StartSync handles the pluggable-discovery START_SYNC command
@@ -103,11 +103,8 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	}
 
 	d.entriesChan = make(chan *mdns.ServiceEntry, 4)
-	var receiver <-chan *mdns.ServiceEntry = d.entriesChan
-	var sender chan<- *mdns.ServiceEntry = d.entriesChan
-
 	go func() {
-		for entry := range receiver {
+		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
 			key := portKey(port)
 			if _, ok := d.portsCache.Get(key); !ok {
@@ -118,16 +115,26 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		}
 	}()
 
+	// We use a separate channel to consume the events received
+	// from Query and send them over to d.entriesChan only if
+	// it's open.
+	// If we'd have used d.entriesChan to get the events from
+	// Query we risk panics cause of sends to a closed channel.
+	// Query doesn't stop right away when we call d.Stop()
+	// neither we have to any to do it, we can only wait for it
+	// to return.
+	queriesChan := make(chan *mdns.ServiceEntry, 4)
 	params := &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
 		Timeout:             discoveryInterval,
-		Entries:             sender,
+		Entries:             queriesChan,
 		WantUnicastResponse: false,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
+		defer close(queriesChan)
 		for {
 			if err := mdns.Query(params); err != nil {
 				errorCB("mdns lookup error: " + err.Error())
@@ -136,6 +143,13 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 			default:
 			case <-ctx.Done():
 				return
+			}
+		}
+	}()
+	go func() {
+		for entry := range queriesChan {
+			if d.entriesChan != nil {
+				d.entriesChan <- entry
 			}
 		}
 	}()
