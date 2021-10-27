@@ -100,7 +100,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		})
 	}
 
-	d.entriesChan = make(chan *mdns.ServiceEntry, 4)
+	d.entriesChan = make(chan *mdns.ServiceEntry)
 	go func() {
 		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
@@ -119,7 +119,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	// Query doesn't stop right away when we call d.Stop()
 	// neither we have to any to do it, we can only wait for it
 	// to return.
-	queriesChan := make(chan *mdns.ServiceEntry, 4)
+	queriesChan := make(chan *mdns.ServiceEntry)
 	params := &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
