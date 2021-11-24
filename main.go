@@ -28,8 +28,8 @@ import (
 	"time"
 
 	properties "github.com/arduino/go-properties-orderedmap"
+	"github.com/arduino/mdns"
 	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
-	"github.com/hashicorp/mdns"
 )
 
 func main() {
@@ -126,6 +126,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		Timeout:             discoveryInterval,
 		Entries:             queriesChan,
 		WantUnicastResponse: false,
+		DisableIPv6:         true,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
