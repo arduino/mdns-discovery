@@ -1,9 +1,9 @@
 ---
-name: github.com/hashicorp/mdns
-version: v1.0.4
+name: github.com/arduino/mdns
+version: v1.0.5-0.20211124112247-3bf2ec2117c5
 type: go
 summary: 
-homepage: https://pkg.go.dev/github.com/hashicorp/mdns
+homepage: https://pkg.go.dev/github.com/arduino/mdns
 license: mit
 licenses:
 - sources: LICENSE
