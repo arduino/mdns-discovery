@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
+	discovery "github.com/arduino/pluggable-discovery-protocol-handler/v2"
 )
 
 // cacheItem stores TTL of discovered ports and its timer to handle TTL.

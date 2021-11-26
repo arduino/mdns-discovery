@@ -1,13 +1,13 @@
 ---
-name: github.com/arduino/pluggable-discovery-protocol-handler
-version: v1.2.0
+name: github.com/arduino/pluggable-discovery-protocol-handler/v2
+version: v2.0.2
 type: go
-summary: discovery is a library for handling the Arduino Pluggable-Discovery protocol
-  (https://github.com/arduino/tooling-rfcs/blob/main/RFCs/0002-pluggable-discovery.md#pluggable-discovery-api-via-stdinstdout)
+summary: Package discovery is a library for handling the Arduino Pluggable-Discovery
+  protocol (https://github.com/arduino/tooling-rfcs/blob/main/RFCs/0002-pluggable-discovery.md#pluggable-discovery-api-via-stdinstdout)
   The library implements the state machine and the parsing logic to communicate with
   a pluggable-discovery client.
-homepage: https://pkg.go.dev/github.com/arduino/pluggable-discovery-protocol-handler
-license: gpl-3.0-only
+homepage: https://pkg.go.dev/github.com/arduino/pluggable-discovery-protocol-handler/v2
+license: other
 licenses:
 - sources: LICENSE.txt
   text: |
@@ -707,5 +707,5 @@ licenses:
     of the serial-discovery code. The terms of this license can be found at:
     https://www.gnu.org/licenses/gpl-3.0.en.html
 
-    See [LICENSE.txt](https://github.com/arduino/serial-discovery/blob/master/LICENSE.txt) for details.
+    See [LICENSE.txt](https://github.com/arduino/pluggable-discovery-protocol-handler/blob/master/LICENSE.txt) for details.
 notices: []
