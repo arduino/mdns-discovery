@@ -1,0 +1,14 @@
+# Build artifacts
+/mdns-discovery
+!/mdns-discovery/
+mdns-discovery.exe
+__pycache__/
+
+# IDEs
+.idea/
+.vscode/
+*.bak
+*.code-workspace
+*.sublime-workspace
+
+/dist
