@@ -29,13 +29,13 @@ import (
 
 	properties "github.com/arduino/go-properties-orderedmap"
 	"github.com/arduino/mdns"
-	discovery "github.com/arduino/pluggable-discovery-protocol-handler"
+	discovery "github.com/arduino/pluggable-discovery-protocol-handler/v2"
 )
 
 func main() {
 	parseArgs()
 	mdnsDiscovery := &MDNSDiscovery{}
-	disc := discovery.NewDiscoveryServer(mdnsDiscovery)
+	disc := discovery.NewServer(mdnsDiscovery)
 	if err := disc.Run(os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		os.Exit(1)
