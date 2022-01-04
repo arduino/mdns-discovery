@@ -28,8 +28,8 @@ import (
 	"time"
 
 	properties "github.com/arduino/go-properties-orderedmap"
-	"github.com/arduino/mdns"
 	discovery "github.com/arduino/pluggable-discovery-protocol-handler/v2"
+	"github.com/hashicorp/mdns"
 )
 
 func main() {
