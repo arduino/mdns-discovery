@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -50,6 +51,12 @@ const portsTTL = time.Second * 60
 
 // This is interval at which mDNS queries are made.
 const discoveryInterval = time.Second * 15
+
+// IP address used to check if we're connected to a local network
+var ipv4Addr = &net.UDPAddr{
+	IP:   net.ParseIP("224.0.0.251"),
+	Port: 5353,
+}
 
 // MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
@@ -132,6 +139,16 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer close(queriesChan)
+		// We must check if we're connected to a local network, if we don't
+		// the subsequent mDNS query would fail and return an error.
+		if mconn4, err := net.ListenMulticastUDP("udp4", nil, ipv4Addr); err != nil {
+			return
+		} else {
+			// If we managed to open a connection close it, mdns.Query opens
+			// another one on the same IP address we use and it would fail
+			// if we leave this open.
+			mconn4.Close()
+		}
 		for {
 			if err := mdns.Query(params); err != nil {
 				errorCB("mdns lookup error: " + err.Error())
