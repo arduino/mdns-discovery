@@ -58,6 +58,12 @@ var ipv4Addr = &net.UDPAddr{
 	Port: 5353,
 }
 
+// IP address used to check if IPv6 is supported by the local network
+var ipv6Addr = &net.UDPAddr{
+	IP:   net.ParseIP("ff02::fb"),
+	Port: 5353,
+}
+
 // MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
 	cancelFunc  func()
@@ -127,27 +133,38 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	// neither we have to any to do it, we can only wait for it
 	// to return.
 	queriesChan := make(chan *mdns.ServiceEntry)
-	params := &mdns.QueryParam{
-		Service:             mdnsServiceName,
-		Domain:              "local",
-		Timeout:             discoveryInterval,
-		Entries:             queriesChan,
-		WantUnicastResponse: false,
-		DisableIPv6:         true,
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer close(queriesChan)
+
+		disableIPv6 := false
+		// Check if the current network supports IPv6
+		mconn6, err := net.ListenMulticastUDP("udp6", nil, ipv6Addr)
+		if err != nil {
+			disableIPv6 = true
+		} else {
+			mconn6.Close()
+		}
+
 		// We must check if we're connected to a local network, if we don't
 		// the subsequent mDNS query would fail and return an error.
-		if mconn4, err := net.ListenMulticastUDP("udp4", nil, ipv4Addr); err != nil {
+		mconn4, err := net.ListenMulticastUDP("udp4", nil, ipv4Addr)
+		if err != nil {
 			return
-		} else {
-			// If we managed to open a connection close it, mdns.Query opens
-			// another one on the same IP address we use and it would fail
-			// if we leave this open.
-			mconn4.Close()
+		}
+		// If we managed to open a connection close it, mdns.Query opens
+		// another one on the same IP address we use and it would fail
+		// if we leave this open.
+		mconn4.Close()
+
+		params := &mdns.QueryParam{
+			Service:             mdnsServiceName,
+			Domain:              "local",
+			Timeout:             discoveryInterval,
+			Entries:             queriesChan,
+			WantUnicastResponse: false,
+			DisableIPv6:         disableIPv6,
 		}
 		for {
 			if err := mdns.Query(params); err != nil {
