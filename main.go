@@ -213,9 +213,19 @@ func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
 		}
 	}
 
+	var name string
+	if split := strings.Split(entry.Host, "."); len(split) > 0 {
+		// Use the first part of the entry host name to display
+		// the address label
+		name = split[0]
+	} else {
+		// Fallback
+		name = entry.Name
+	}
+
 	return &discovery.Port{
 		Address:       ip,
-		AddressLabel:  fmt.Sprintf("%s at %s", entry.Name, ip),
+		AddressLabel:  fmt.Sprintf("%s at %s", name, ip),
 		Protocol:      "network",
 		ProtocolLabel: "Network Port",
 		Properties:    props,
