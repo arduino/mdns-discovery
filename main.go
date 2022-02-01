@@ -117,6 +117,9 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	go func() {
 		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
+			if port == nil {
+				continue
+			}
 			if updated := d.portsCache.storeOrUpdate(port); !updated {
 				// Port is not cached so let the user know a new one has been found
 				eventCB("add", port)
@@ -189,6 +192,12 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 }
 
 func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
+	// Only entries that match the Arduino OTA service name must
+	// be returned
+	if !strings.HasSuffix(entry.Name, mdnsServiceName+".local.") {
+		return nil
+	}
+
 	ip := ""
 	if len(entry.AddrV4) > 0 {
 		ip = entry.AddrV4.String()
