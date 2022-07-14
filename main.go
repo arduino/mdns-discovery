@@ -161,20 +161,63 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		// if we leave this open.
 		mconn4.Close()
 
-		params := &mdns.QueryParam{
-			Service:             mdnsServiceName,
-			Domain:              "local",
-			Timeout:             discoveryInterval,
-			Entries:             queriesChan,
-			WantUnicastResponse: false,
-			DisableIPv6:         disableIPv6,
+		netifs, err := net.Interfaces()
+		if err != nil {
+			return
 		}
-		for {
-			if err := mdns.Query(params); err != nil {
-				errorCB("mdns lookup error: " + err.Error())
+
+		var netifs_params []*mdns.QueryParam
+		for n := range netifs {
+			netif := netifs[n]
+
+			if netif.Flags&net.FlagUp == 0 {
+				continue
 			}
+
+			if netif.Flags&net.FlagMulticast == 0 {
+				continue
+			}
+
+			if netif.HardwareAddr == nil {
+				continue
+			}
+
+			netifs_params = append(netifs_params, &mdns.QueryParam{
+				Interface:           &netifs[n],
+				Service:             mdnsServiceName,
+				Domain:              "local",
+				Timeout:             discoveryInterval,
+				Entries:             queriesChan,
+				WantUnicastResponse: false,
+				DisableIPv6:         disableIPv6,
+			})
+		}
+
+		if len(netifs_params) == 0 {
+			errorCB("no available interfaces")
+			return
+		}
+
+		for _, params := range netifs_params {
+			go func(params *mdns.QueryParam) {
+				for {
+					if err := mdns.Query(params); err != nil {
+						errorCB("mdns lookup error: " + err.Error())
+						return
+					}
+
+					select {
+					case <-time.After(time.Second):
+					case <-ctx.Done():
+						return
+					}
+				}
+			}(params)
+		}
+
+		for {
 			select {
-			default:
+			case <-time.After(time.Second):
 			case <-ctx.Done():
 				return
 			}
