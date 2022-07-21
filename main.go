@@ -69,7 +69,7 @@ var ipv6Addr = &net.UDPAddr{
 }
 
 // QueryParam{} has to select which IP version(s) to use
-type Connectivity struct {
+type connectivity struct {
 	IPv4 bool
 	IPv6 bool
 }
@@ -166,7 +166,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 	for {
 		var interfaces []net.Interface
-		var conn Connectivity
+		var conn connectivity
 		var wg sync.WaitGroup
 
 		interfaces, err := availableInterfaces()
@@ -199,17 +199,17 @@ func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 	}
 }
 
-func (conn *Connectivity) available() bool {
+func (conn *connectivity) available() bool {
 	return conn.IPv4 || conn.IPv6
 }
 
-func checkConnectivity() Connectivity {
+func checkConnectivity() connectivity {
 	// We must check if we're connected to a local network, if we don't
 	// the subsequent mDNS query would fail and return an error.
 	// If we managed to open a connection close it, mdns.Query opens
 	// another one on the same IP address we use and it would fail
 	// if we leave this open.
-	out := Connectivity{
+	out := connectivity{
 		IPv4: true,
 		IPv6: true,
 	}
@@ -265,7 +265,7 @@ func availableInterfaces() ([]net.Interface, error) {
 	return out, nil
 }
 
-func makeQueryParams(netif *net.Interface, conn Connectivity, queriesChan chan<- *mdns.ServiceEntry) (params *mdns.QueryParam) {
+func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<- *mdns.ServiceEntry) (params *mdns.QueryParam) {
 	return &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
