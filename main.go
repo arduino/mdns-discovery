@@ -54,7 +54,7 @@ const portsTTL = time.Second * 60
 const queryInterval = time.Second * 30
 
 // mdns.Query() will either exit early or timeout after this amount of time
-const discoveryTimeout = time.Second * 15
+const queryTimeout = time.Second * 15
 
 // IP address used to check if we're connected to a local network
 var ipv4Addr = &net.UDPAddr{
@@ -240,9 +240,7 @@ func availableInterfaces() ([]net.Interface, error) {
 	}
 
 	var out []net.Interface
-	for n := range interfaces {
-		netif := interfaces[n]
-
+	for _, netif := range interfaces {
 		if netif.Flags&net.FlagUp == 0 {
 			continue
 		}
@@ -269,7 +267,7 @@ func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<-
 	return &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
-		Timeout:             discoveryTimeout,
+		Timeout:             queryTimeout,
 		Interface:           netif,
 		Entries:             queriesChan,
 		WantUnicastResponse: false,
