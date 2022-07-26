@@ -182,10 +182,11 @@ func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 		wg.Add(len(interfaces))
 
 		for n := range interfaces {
-			go func(params *mdns.QueryParam) {
+			params := makeQueryParams(&interfaces[n], conn, queriesChan)
+			go func() {
 				defer wg.Done()
 				mdns.Query(params)
-			}(makeQueryParams(&interfaces[n], conn, queriesChan))
+			}()
 		}
 
 		wg.Wait()
