@@ -175,7 +175,7 @@ func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 		}
 
 		conn = checkConnectivity()
-		if conn.available() {
+		if !conn.available() {
 			goto NEXT
 		}
 
