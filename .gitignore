@@ -12,3 +12,5 @@ __pycache__/
 *.sublime-workspace
 
 /dist
+
+/node_modules/

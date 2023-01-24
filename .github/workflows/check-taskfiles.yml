@@ -1,16 +1,25 @@
 # Source: https://github.com/arduino/tooling-project-assets/blob/main/workflow-templates/check-taskfiles.md
 name: Check Taskfiles
 
-# See: https://docs.github.com/en/actions/reference/events-that-trigger-workflows
+env:
+  # See: https://github.com/actions/setup-node/#readme
+  NODE_VERSION: 16.x
+
+# See: https://docs.github.com/actions/using-workflows/events-that-trigger-workflows
 on:
+  create:
   push:
     paths:
       - ".github/workflows/check-taskfiles.ya?ml"
+      - "package.json"
+      - "package-lock.json"
       - "**/Taskfile.ya?ml"
       - "**/DistTasks.ya?ml"
   pull_request:
     paths:
       - ".github/workflows/check-taskfiles.ya?ml"
+      - "package.json"
+      - "package-lock.json"
       - "**/Taskfile.ya?ml"
       - "**/DistTasks.ya?ml"
   schedule:
@@ -20,8 +29,33 @@ on:
   repository_dispatch:
 
 jobs:
+  run-determination:
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.determination.outputs.result }}
+    steps:
+      - name: Determine if the rest of the workflow should run
+        id: determination
+        run: |
+          RELEASE_BRANCH_REGEX="refs/heads/[0-9]+.[0-9]+.x"
+          # The `create` event trigger doesn't support `branches` filters, so it's necessary to use Bash instead.
+          if [[
+            "${{ github.event_name }}" != "create" ||
+            "${{ github.ref }}" =~ $RELEASE_BRANCH_REGEX
+          ]]; then
+            # Run the other jobs.
+            RESULT="true"
+          else
+            # There is no need to run the other jobs.
+            RESULT="false"
+          fi
+
+          echo "result=$RESULT" >> $GITHUB_OUTPUT
+
   validate:
     name: Validate ${{ matrix.file }}
+    needs: run-determination
+    if: needs.run-determination.outputs.result == 'true'
     runs-on: ubuntu-latest
 
     strategy:
@@ -29,35 +63,38 @@ jobs:
 
       matrix:
         file:
-          # TODO: add paths to any additional Taskfiles here
           - ./**/Taskfile.yml
-          - ./DistTasks.yml
+          - ./**/DistTasks.yml
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Download JSON schema for Taskfiles
         id: download-schema
         uses: carlosperate/download-file-action@v2
         with:
-          # See: https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/taskfile.json
-          file-url: https://json.schemastore.org/taskfile.json
+          # Source: https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/taskfile.json
+          file-url: https://taskfile.dev/schema.json
           location: ${{ runner.temp }}/taskfile-schema
 
       - name: Install JSON schema validator
-        run: |
-          sudo npm install \
-            --global \
-            ajv-cli \
-            ajv-formats
+        run: npm install
 
       - name: Validate ${{ matrix.file }}
         run: |
           # See: https://github.com/ajv-validator/ajv-cli#readme
-          ajv validate \
-            --all-errors \
-            --strict=false \
-            -c ajv-formats \
-            -s "${{ steps.download-schema.outputs.file-path }}" \
-            -d "${{ matrix.file }}"
+          npx \
+            --package=ajv-cli \
+            --package=ajv-formats \
+            ajv validate \
+              --all-errors \
+              --strict=false \
+              -c ajv-formats \
+              -s "${{ steps.download-schema.outputs.file-path }}" \
+              -d "${{ matrix.file }}"
