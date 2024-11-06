@@ -65,7 +65,7 @@ jobs:
           path: ${{ env.DIST_DIR }}
 
   notarize-macos:
-    name: Notarize ${{ matrix.artifact.name }}
+    name: Notarize ${{ matrix.build.folder-suffix }}
     runs-on: macos-latest
     needs: create-release-artifacts
 
@@ -74,13 +74,20 @@ jobs:
 
     strategy:
       matrix:
-        artifact:
-          - name: darwin_amd64
-            path: "macOS_64bit.tar.gz"
-          - name: darwin_arm64
-            path: "macOS_ARM64.tar.gz"
+        build:
+          - folder-suffix: darwin_amd64
+            package-suffix: "macOS_64bit.tar.gz"
+          - folder-suffix: darwin_arm64
+            package-suffix: "macOS_ARM64.tar.gz"
 
     steps:
+      - name: Set environment variables
+        run: |
+          # See: https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#setting-an-environment-variable
+          echo "BUILD_FOLDER=${{ env.PROJECT_NAME }}_osx_${{ matrix.build.folder-suffix }}" >> "$GITHUB_ENV"
+          TAG="${GITHUB_REF/refs\/tags\//}"
+          echo "PACKAGE_FILENAME=${{ env.PROJECT_NAME }}_${TAG}_${{ matrix.build.package-suffix }}" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -124,7 +131,7 @@ jobs:
         run: |
           cat > "${{ env.GON_CONFIG_PATH }}" <<EOF
           # See: https://github.com/Bearer/gon#configuration-file
-          source = ["${{ env.DIST_DIR }}/${{ env.PROJECT_NAME }}_osx_${{ matrix.artifact.name }}/${{ env.PROJECT_NAME }}"]
+          source = ["${{ env.DIST_DIR }}/${{ env.BUILD_FOLDER }}/${{ env.PROJECT_NAME }}"]
           bundle_id = "cc.arduino.${{ env.PROJECT_NAME }}"
 
           sign {
@@ -154,11 +161,8 @@ jobs:
         run: |
           # GitHub's upload/download-artifact actions don't preserve file permissions,
           # so we need to add execution permission back until the action is made to do this.
-          chmod +x "${{ env.PROJECT_NAME }}_osx_${{ matrix.artifact.name }}/${{ env.PROJECT_NAME }}"
-          TAG="${GITHUB_REF/refs\/tags\//}"
-          PACKAGE_FILENAME="${{ env.PROJECT_NAME }}_${TAG}_${{ matrix.artifact.path }}"
-          tar -czvf "$PACKAGE_FILENAME" "${{ env.PROJECT_NAME }}_osx_${{ matrix.artifact.name }}"
-          echo "PACKAGE_FILENAME=$PACKAGE_FILENAME" >> $GITHUB_ENV
+          chmod +x "${{ env.BUILD_FOLDER }}/${{ env.PROJECT_NAME }}"
+          tar -czvf "${{ env.PACKAGE_FILENAME }}" "${{ env.BUILD_FOLDER }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
