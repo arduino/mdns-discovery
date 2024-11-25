@@ -1,10 +1,10 @@
 github.com/arduino/go-paths-helper v1.0.1/go.mod h1:HpxtKph+g238EJHq4geEPv9p+gl3v5YYu35Yb+w31Ck=
 github.com/arduino/go-paths-helper v1.10.0 h1:oeE6Mcl4lsz+knC3lzaCWkRQa3n3FbwdRSeGhy6uGbM=
 github.com/arduino/go-paths-helper v1.10.0/go.mod h1:LgEVnv+cqSl05vXD5LaUZGquDsX5OKmPNDJtjTL8928=
-github.com/arduino/go-properties-orderedmap v1.8.0 h1:wEfa6hHdpezrVOh787OmClsf/Kd8qB+zE3P2Xbrn0CQ=
-github.com/arduino/go-properties-orderedmap v1.8.0/go.mod h1:DKjD2VXY/NZmlingh4lSFMEYCVubfeArCsGPGDwb2yk=
-github.com/arduino/pluggable-discovery-protocol-handler/v2 v2.1.2 h1:Yrljx84UtFilOCpe+xE6+OFDyWyhghYpP/4A7vzQneM=
-github.com/arduino/pluggable-discovery-protocol-handler/v2 v2.1.2/go.mod h1:1dgblsmK2iBx3L5iNTyRIokeaxbTLUrYiUbHBK6yC3Y=
+github.com/arduino/go-properties-orderedmap v1.8.1 h1:nU5S6cXPwMoxZs4ORw61wPTALNfriIduvNB4cxTmNYM=
+github.com/arduino/go-properties-orderedmap v1.8.1/go.mod h1:DKjD2VXY/NZmlingh4lSFMEYCVubfeArCsGPGDwb2yk=
+github.com/arduino/pluggable-discovery-protocol-handler/v2 v2.2.1 h1:Fw8zKj1b/FkcQrWgN7aBw3ubSxpKIUtdANLXvd1Qdzw=
+github.com/arduino/pluggable-discovery-protocol-handler/v2 v2.2.1/go.mod h1:1dgblsmK2iBx3L5iNTyRIokeaxbTLUrYiUbHBK6yC3Y=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
