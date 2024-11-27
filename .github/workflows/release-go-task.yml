@@ -189,6 +189,7 @@ jobs:
     environment: production
     needs: notarize-macos
     permissions:
+      contents: write
       id-token: write # This is required for requesting the JWT
 
     steps:
