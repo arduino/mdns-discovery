@@ -1,43 +1,32 @@
 ---
 name: github.com/miekg/dns
-version: v1.1.43
+version: v1.1.68
 type: go
 summary: Package dns implements a full featured interface to the Domain Name System.
 homepage: https://pkg.go.dev/github.com/miekg/dns
 license: bsd-3-clause
 licenses:
 - sources: LICENSE
-  text: |
-    Copyright (c) 2009 The Go Authors. All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-       * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-       * Redistributions in binary form must reproduce the above
-    copyright notice, this list of conditions and the following disclaimer
-    in the documentation and/or other materials provided with the
-    distribution.
-       * Neither the name of Google Inc. nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-    As this is fork of the official Go code the same license applies.
-    Extensions of the original work are copyright (c) 2011 Miek Gieben
+  text: "BSD 3-Clause License\n\nCopyright (c) 2009, The Go Authors. Extensions copyright
+    (c) 2011, Miek Gieben. \nAll rights reserved.\n\nRedistribution and use in source
+    and binary forms, with or without\nmodification, are permitted provided that the
+    following conditions are met:\n\n1. Redistributions of source code must retain
+    the above copyright notice, this\n   list of conditions and the following disclaimer.\n\n2.
+    Redistributions in binary form must reproduce the above copyright notice,\n   this
+    list of conditions and the following disclaimer in the documentation\n   and/or
+    other materials provided with the distribution.\n\n3. Neither the name of the
+    copyright holder nor the names of its\n   contributors may be used to endorse
+    or promote products derived from\n   this software without specific prior written
+    permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+    THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON
+    ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE,
+    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
 - sources: COPYRIGHT
   text: |
     Copyright 2009 The Go Authors. All rights reserved. Use of this source code
