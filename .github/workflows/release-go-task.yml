@@ -66,14 +66,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: 3.x
 
-      - name: Install Latest Docker and QEMU
-        run: |
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-          sudo apt-get update
-          sudo apt-get install docker-ce
-          sudo apt-get install qemu-user-static
-          docker --version
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Build
         run: task dist:${{ matrix.os.task }}
