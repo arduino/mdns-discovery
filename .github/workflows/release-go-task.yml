@@ -19,6 +19,8 @@ on:
 jobs:
   create-release-artifacts:
     runs-on: ${{ matrix.os.runner }}
+    permissions:
+      contents: read
 
     strategy:
       matrix:

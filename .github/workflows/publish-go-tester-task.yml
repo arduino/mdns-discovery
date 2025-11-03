@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.determination.outputs.result }}
+    permissions: {}
     steps:
       - name: Determine if the rest of the workflow should run
         id: determination
@@ -59,6 +60,7 @@ jobs:
     needs: run-determination
     if: needs.run-determination.outputs.result == 'true'
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       prefix: ${{ steps.calculation.outputs.prefix }}
     steps:
@@ -77,6 +79,8 @@ jobs:
     needs: package-name-prefix
     name: Build ${{ matrix.os.artifact-name }}
     runs-on: ${{ matrix.os.runner }}
+    permissions:
+      contents: read
 
     strategy:
       matrix:
@@ -150,6 +154,8 @@ jobs:
       - build
       - package-name-prefix
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Download build artifacts
