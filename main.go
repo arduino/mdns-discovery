@@ -145,7 +145,16 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	// Query doesn't stop right away when we call d.Stop()
 	// neither we have to any to do it, we can only wait for it
 	// to return.
-	queriesChan := make(chan *mdns.ServiceEntry)
+	// Use a buffered channel so that simultaneous responses from multiple
+	// boards are not dropped. hashicorp/mdns sends entries with a non-blocking
+	// select (default: drop), so if the consumer goroutine has not yet read the
+	// previous entry the next one is silently lost.
+	//
+	// Note: the channel receives ALL mDNS entries seen on the multicast socket
+	// (not only Arduino ones — service-type filtering happens in toDiscoveryPort),
+	// so the buffer must accommodate every mDNS device that announces during the
+	// 15-second query window. 256 is large enough for any realistic LAN.
+	queriesChan := make(chan *mdns.ServiceEntry, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
