@@ -326,7 +326,6 @@ func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<-
 				iface: netif,
 			}
 		}
-		fmt.Println("goroutine ended")
 	}()
 
 	return &mdns.QueryParam{
