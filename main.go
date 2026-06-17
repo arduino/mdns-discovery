@@ -145,7 +145,16 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	// Query doesn't stop right away when we call d.Stop()
 	// neither we have to any to do it, we can only wait for it
 	// to return.
-	queriesChan := make(chan *mdns.ServiceEntry)
+	// Use a buffered channel so that simultaneous responses from multiple
+	// boards are not dropped. hashicorp/mdns sends entries with a non-blocking
+	// select (default: drop), so if the consumer goroutine has not yet read the
+	// previous entry the next one is silently lost.
+	//
+	// Note: the channel receives ALL mDNS entries seen on the multicast socket
+	// (not only Arduino ones — service-type filtering happens in toDiscoveryPort),
+	// so the buffer must accommodate every mDNS device that announces during the
+	// 15-second query window. 256 is large enough for any realistic LAN.
+	queriesChan := make(chan *mdns.ServiceEntry, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -252,6 +261,49 @@ func availableInterfaces() ([]net.Interface, error) {
 
 		if netif.HardwareAddr == nil {
 			continue
+		}
+
+		// Skip virtual network adapters that are unlikely to have Arduino
+		// devices on them but cause multicast socket conflicts on Windows.
+		//
+		// When multiple interfaces each run an mdns.Query in parallel, Windows
+		// may deliver an incoming multicast UDP packet to only one of the
+		// competing sockets. If a virtual adapter's socket wins, the physical
+		// NIC's socket never sees the response, and discovery silently returns
+		// nothing even though the board is actively responding on the wire.
+		//
+		// Hyper-V virtual switches (WSL, Docker Desktop) are always named
+		// "vEthernet (...)" on Windows. VMware virtual adapters use "VMnet".
+		// These names are stable and controlled by their respective installers.
+		if strings.HasPrefix(netif.Name, "vEthernet") ||
+			strings.HasPrefix(netif.Name, "VMnet") {
+			continue
+		}
+
+		// Skip interfaces that have no routable unicast address.
+		// An interface with only a link-local address (169.254.x.x / fe80::)
+		// has no working DHCP lease and cannot reach real LAN devices.
+		// This also filters Linux/macOS virtual bridges (docker0, virbr0, etc.)
+		// that happen to have a MAC address but no reachable subnet.
+		addrs, err := netif.Addrs()
+		if err == nil {
+			hasRoutable := false
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+				if ip != nil && !ip.IsLinkLocalUnicast() && !ip.IsLoopback() {
+					hasRoutable = true
+					break
+				}
+			}
+			if !hasRoutable {
+				continue
+			}
 		}
 
 		out = append(out, netif)
