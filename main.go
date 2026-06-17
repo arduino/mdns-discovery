@@ -20,7 +20,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -85,7 +85,7 @@ type MDNSDiscovery struct {
 // Hello handles the pluggable-discovery HELLO command
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	// The mdns library used has some logs statement that we must disable
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	return nil
 }
 
