@@ -356,7 +356,7 @@ func toDiscoveryPort(entry mdnsResult) *discovery.Port {
 	if len(entry.entry.AddrV4) > 0 {
 		ip = entry.entry.AddrV4.String()
 	} else if len(entry.entry.AddrV6) > 0 {
-		add:= entry.entry.AddrV6 
+		add := entry.entry.AddrV6
 		if add.IsLinkLocalUnicast() {
 			// Link-local IPv6 addresses require the interface index to be appended
 			// to the address in order to be reachable. See RFC 4007 section 11.
