@@ -20,7 +20,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -77,7 +77,7 @@ type connectivity struct {
 // MDNSDiscovery is the implementation of the network pluggable-discovery
 type MDNSDiscovery struct {
 	cancelFunc  func()
-	entriesChan chan *mdns.ServiceEntry
+	entriesChan chan mdnsResult
 
 	portsCache *portsCache
 }
@@ -85,7 +85,7 @@ type MDNSDiscovery struct {
 // Hello handles the pluggable-discovery HELLO command
 func (d *MDNSDiscovery) Hello(userAgent string, protocolVersion int) error {
 	// The mdns library used has some logs statement that we must disable
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 		})
 	}
 
-	d.entriesChan = make(chan *mdns.ServiceEntry)
+	d.entriesChan = make(chan mdnsResult, 256)
 	go func() {
 		for entry := range d.entriesChan {
 			port := toDiscoveryPort(entry)
@@ -154,7 +154,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	// (not only Arduino ones — service-type filtering happens in toDiscoveryPort),
 	// so the buffer must accommodate every mDNS device that announces during the
 	// 15-second query window. 256 is large enough for any realistic LAN.
-	queriesChan := make(chan *mdns.ServiceEntry, 256)
+	queriesChan := make(chan mdnsResult, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -172,7 +172,7 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 	return nil
 }
 
-func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
+func queryLoop(ctx context.Context, queriesChan chan<- mdnsResult) {
 	for {
 		var interfaces []net.Interface
 		var conn connectivity
@@ -195,6 +195,7 @@ func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 			go func() {
 				defer wg.Done()
 				mdns.Query(params)
+				close(params.Entries)
 			}()
 		}
 
@@ -316,38 +317,60 @@ func availableInterfaces() ([]net.Interface, error) {
 	return out, nil
 }
 
-func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<- *mdns.ServiceEntry) (params *mdns.QueryParam) {
+func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<- mdnsResult) (params *mdns.QueryParam) {
+	entries := make(chan *mdns.ServiceEntry, 256)
+	go func() {
+		for entry := range entries {
+			queriesChan <- mdnsResult{
+				entry: entry,
+				iface: netif,
+			}
+		}
+	}()
+
 	return &mdns.QueryParam{
 		Service:             mdnsServiceName,
 		Domain:              "local",
 		Timeout:             queryTimeout,
 		Interface:           netif,
-		Entries:             queriesChan,
+		Entries:             entries,
 		WantUnicastResponse: false,
 		DisableIPv4:         !conn.IPv4,
 		DisableIPv6:         !conn.IPv6,
 	}
 }
 
-func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
+type mdnsResult struct {
+	entry *mdns.ServiceEntry
+	iface *net.Interface
+}
+
+func toDiscoveryPort(result mdnsResult) *discovery.Port {
 	// Only entries that match the Arduino OTA service name must
 	// be returned
-	if !strings.HasSuffix(entry.Name, mdnsServiceName+".local.") {
+	if !strings.HasSuffix(result.entry.Name, mdnsServiceName+".local.") {
 		return nil
 	}
 
 	ip := ""
-	if len(entry.AddrV4) > 0 {
-		ip = entry.AddrV4.String()
-	} else if len(entry.AddrV6) > 0 {
-		ip = entry.AddrV6.String()
+	if len(result.entry.AddrV4) > 0 {
+		ip = result.entry.AddrV4.String()
+	} else if len(result.entry.AddrV6) > 0 {
+		add := result.entry.AddrV6
+		if add.IsLinkLocalUnicast() {
+			// Link-local IPv6 addresses require the interface index to be appended
+			// to the address in order to be reachable. See RFC 4007 section 11.
+			ip = add.String() + "%" + strconv.Itoa(result.iface.Index)
+		} else {
+			ip = add.String()
+		}
 	}
 
 	props := properties.NewMap()
-	props.Set("hostname", entry.Host)
-	props.Set("port", strconv.Itoa(entry.Port))
+	props.Set("hostname", result.entry.Host)
+	props.Set("port", strconv.Itoa(result.entry.Port))
 
-	for _, field := range entry.InfoFields {
+	for _, field := range result.entry.InfoFields {
 		split := strings.Split(field, "=")
 		if len(split) != 2 {
 			continue
@@ -361,13 +384,13 @@ func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
 	}
 
 	var name string
-	if split := strings.Split(entry.Host, "."); len(split) > 0 {
+	if split := strings.Split(result.entry.Host, "."); len(split) > 0 {
 		// Use the first part of the entry host name to display
 		// the address label
 		name = split[0]
 	} else {
 		// Fallback
-		name = entry.Name
+		name = result.entry.Name
 	}
 
 	return &discovery.Port{
