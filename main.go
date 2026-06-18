@@ -345,32 +345,32 @@ type mdnsResult struct {
 	iface *net.Interface
 }
 
-func toDiscoveryPort(entry mdnsResult) *discovery.Port {
+func toDiscoveryPort(result mdnsResult) *discovery.Port {
 	// Only entries that match the Arduino OTA service name must
 	// be returned
-	if !strings.HasSuffix(entry.entry.Name, mdnsServiceName+".local.") {
+	if !strings.HasSuffix(result.entry.Name, mdnsServiceName+".local.") {
 		return nil
 	}
 
 	ip := ""
-	if len(entry.entry.AddrV4) > 0 {
-		ip = entry.entry.AddrV4.String()
-	} else if len(entry.entry.AddrV6) > 0 {
-		add := entry.entry.AddrV6
+	if len(result.entry.AddrV4) > 0 {
+		ip = result.entry.AddrV4.String()
+	} else if len(result.entry.AddrV6) > 0 {
+		add := result.entry.AddrV6
 		if add.IsLinkLocalUnicast() {
 			// Link-local IPv6 addresses require the interface index to be appended
 			// to the address in order to be reachable. See RFC 4007 section 11.
-			ip = add.String() + "%" + strconv.Itoa(entry.iface.Index)
+			ip = add.String() + "%" + strconv.Itoa(result.iface.Index)
 		} else {
 			ip = add.String()
 		}
 	}
 
 	props := properties.NewMap()
-	props.Set("hostname", entry.entry.Host)
-	props.Set("port", strconv.Itoa(entry.entry.Port))
+	props.Set("hostname", result.entry.Host)
+	props.Set("port", strconv.Itoa(result.entry.Port))
 
-	for _, field := range entry.entry.InfoFields {
+	for _, field := range result.entry.InfoFields {
 		split := strings.Split(field, "=")
 		if len(split) != 2 {
 			continue
@@ -384,13 +384,13 @@ func toDiscoveryPort(entry mdnsResult) *discovery.Port {
 	}
 
 	var name string
-	if split := strings.Split(entry.entry.Host, "."); len(split) > 0 {
+	if split := strings.Split(result.entry.Host, "."); len(split) > 0 {
 		// Use the first part of the entry host name to display
 		// the address label
 		name = split[0]
 	} else {
 		// Fallback
-		name = entry.entry.Name
+		name = result.entry.Name
 	}
 
 	return &discovery.Port{
