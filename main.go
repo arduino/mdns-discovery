@@ -174,33 +174,30 @@ func (d *MDNSDiscovery) StartSync(eventCB discovery.EventCallback, errorCB disco
 
 func queryLoop(ctx context.Context, queriesChan chan<- *mdns.ServiceEntry) {
 	for {
-		var interfaces []net.Interface
-		var conn connectivity
-		var wg sync.WaitGroup
-
-		interfaces, err := availableInterfaces()
-		if err != nil {
-			goto NEXT
+		if interfaces, err := availableInterfaces(); err != nil {
+			// skip the query and try again after the next interval, maybe the network interfaces are not ready yet
+		} else if conn := checkConnectivity(); !conn.available() {
+			// skip the query and try again after the next interval, maybe we're not connected to a local network yet
+		} else {
+			var wg sync.WaitGroup
+			for n := range interfaces {
+				iface := &interfaces[n]
+				wg.Go(func() {
+					mdns.Query(&mdns.QueryParam{
+						Service:             mdnsServiceName,
+						Domain:              "local",
+						Timeout:             queryTimeout,
+						Interface:           iface,
+						Entries:             queriesChan,
+						WantUnicastResponse: false,
+						DisableIPv4:         !conn.IPv4,
+						DisableIPv6:         !conn.IPv6,
+					})
+				})
+			}
+			wg.Wait()
 		}
 
-		conn = checkConnectivity()
-		if !conn.available() {
-			goto NEXT
-		}
-
-		wg.Add(len(interfaces))
-
-		for n := range interfaces {
-			params := makeQueryParams(&interfaces[n], conn, queriesChan)
-			go func() {
-				defer wg.Done()
-				mdns.Query(params)
-			}()
-		}
-
-		wg.Wait()
-
-	NEXT:
 		select {
 		case <-time.After(queryInterval):
 		case <-ctx.Done():
@@ -314,19 +311,6 @@ func availableInterfaces() ([]net.Interface, error) {
 	}
 
 	return out, nil
-}
-
-func makeQueryParams(netif *net.Interface, conn connectivity, queriesChan chan<- *mdns.ServiceEntry) (params *mdns.QueryParam) {
-	return &mdns.QueryParam{
-		Service:             mdnsServiceName,
-		Domain:              "local",
-		Timeout:             queryTimeout,
-		Interface:           netif,
-		Entries:             queriesChan,
-		WantUnicastResponse: false,
-		DisableIPv4:         !conn.IPv4,
-		DisableIPv6:         !conn.IPv6,
-	}
 }
 
 func toDiscoveryPort(entry *mdns.ServiceEntry) *discovery.Port {
